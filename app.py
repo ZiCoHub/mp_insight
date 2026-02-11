@@ -220,17 +220,15 @@ st.markdown(
 )
 
 # ---------- Paths ----------
-ROOT = Path(r"C:\Users\asus\Desktop\mp-insight")
-DATA_DIR = ROOT / "data"
-MODELS_DIR = ROOT / "models"
-CONFIG_DIR = ROOT / "config"
-REPORTS_DIR = ROOT / "reports"
+ROOT = Path(__file__).resolve().parent 
 
+DATA_DIR    = ROOT / "data"
+MODELS_DIR  = ROOT / "models"
+CONFIG_DIR  = ROOT / "config"
+REPORTS_DIR = ROOT / "reports"
 LABEL_LOGK = r"$\log K_{MP/W}$"
 LABEL_LOGK_HTML = r"log K<sub>MP/W</sub>"
 LABEL_K_HTML = r"K<sub>MP/W</sub>"
-
-
 # ---------- Utils ----------
 def load_json(p: Path, default: Dict):
     try:
@@ -393,7 +391,10 @@ else:
 
 pipe = None
 try:
-    pipe = joblib.load(MODEL_PATH)
+    if not MODEL_PATH.exists():
+        st.error(f"Model file missing: {MODEL_PATH}")
+    else:
+        pipe = joblib.load(MODEL_PATH)
 except Exception as e:
     st.error(f"Cannot load model: {e}")
 
@@ -446,9 +447,7 @@ R_ref = st.sidebar.number_input(
 )
 st.session_state["r_ref"] = float(R_ref)
 
-
 show_ref_line = st.sidebar.checkbox("Show threshold line (log K_MP/W*)", value=True)
-
 
 # Advanced settings (NO nesting inside other expanders)
 with st.sidebar.expander("Advanced settings", expanded=False):
@@ -515,9 +514,12 @@ with tab_home:
     )
 
     # Put What/How at bottom (per your preference): show image + intro first, then What/How
-    hero_img = str((ROOT / "assets" / "mp_insight_overview.png").resolve())
-    if os.path.exists(hero_img):
-        st.image(hero_img, use_container_width=True)
+    hero_img = ROOT / "assets" / "mp_insight_overview.png"
+    if hero_img.exists():
+        st.image(str(hero_img), use_container_width=True)
+    else:
+        st.warning(f"Missing image: {hero_img}")
+    
     else:
         st.markdown(
             "<div style='height:340px;border:1.5px dashed #cbd5e1;border-radius:12px;"
@@ -841,5 +843,3 @@ st.download_button(
     file_name="mp_insight_batch_results.csv",
     mime="text/csv"
 )
-
-
