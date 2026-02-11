@@ -726,6 +726,7 @@ with tab_batch:
     )
 
     f = st.file_uploader("Upload CSV", type=["csv"], key="csv_uploader_batch")
+
     if f is None:
         st.info("Upload a CSV to run batch prediction.")
     else:
@@ -754,7 +755,7 @@ with tab_batch:
             st.error("Model not loaded.")
             st.stop()
 
-        # ✅ 对齐模型输入列（可选，但建议保留）
+        # ✅ 对齐模型输入列（建议保留）
         try:
             expected_cols = list(pipe.feature_names_in_)
             missing_model = set(expected_cols) - set(df_in.columns)
@@ -783,8 +784,9 @@ with tab_batch:
             "Download results CSV",
             data=out.to_csv(index=False).encode("utf-8-sig"),
             file_name="mp_insight_batch_results.csv",
-            mime="text/csv"
+            mime="text/csv",
         )
+
 
     f = st.file_uploader("Upload CSV", type=["csv"], key="csv_uploader_batch")
     if f is None:
