@@ -727,8 +727,8 @@ with tab_batch:
 
     f = st.file_uploader("Upload CSV", type=["csv"], key="csv_uploader_batch")
     if f is None:
-    st.info("Upload a CSV to run batch prediction.")
-    st.stop()
+        st.info("Upload a CSV to run batch prediction.")
+        st.stop()
 
     try:
         df_in = pd.read_csv(f)
