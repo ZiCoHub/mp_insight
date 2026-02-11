@@ -829,33 +829,25 @@ with tab_batch:
         st.error(f"Column alignment error: {e}")
         st.stop()
 
-   # ==================================================
-# 预测
-# ==================================================
-preds = pipe.predict(df_in)
+    # ==================================================
+    # 预测
+    # ==================================================
+    preds = pipe.predict(df_in)
 
-out = df_in.copy()
+    out = df_in.copy()
+    out["Predicted_logKMP_W"] = preds
+    out["PI95_low"]  = out["Predicted_logKMP_W"] - q95
+    out["PI95_high"] = out["Predicted_logKMP_W"] + q95
 
-# 建议顺便把空格去掉，变成更“可发表/可解析”的列名
-out["Predicted_logKMP_W"] = preds
-out["PI95_low"]  = out["Predicted_logKMP_W"] - q95
-out["PI95_high"] = out["Predicted_logKMP_W"] + q95
+    out["Sorbed_fraction"]   = out["Predicted_logKMP_W"].apply(lambda v: R_pred_from_logKd(v, C_MP_gmL))
+    out["Enrichment_index"]  = out["Predicted_logKMP_W"].apply(lambda v: phi_from_logKd(v, C_MP_gmL))
 
+    st.markdown("**Preview (first 30 rows)**")
+    st.dataframe(out.head(30), use_container_width=True)
 
-# physics-informed derived metrics
-out["Sorbed_fraction"] = out["Predicted_logKMP_W"].apply(lambda v: R_pred_from_logKd(v, C_MP_gmL))
-out["Enrichment_index"] = out["Predicted_logKMP_W"].apply(lambda v: phi_from_logKd(v, C_MP_gmL))
-
-# if show_ref_line:
-#     out["Target_sorbed_fraction"] = float(R_ref)
-#     out["logKd_threshold"] = float(logKd_star_from_Rref(R_ref, C_MP_gmL))
-
-st.markdown("**Preview (first 30 rows)**")
-st.dataframe(out.head(30), use_container_width=True)
-
-st.download_button(
-    "Download results CSV",
-    data=out.to_csv(index=False).encode("utf-8-sig"),
-    file_name="mp_insight_batch_results.csv",
-    mime="text/csv"
-)
+    st.download_button(
+        "Download results CSV",
+        data=out.to_csv(index=False).encode("utf-8-sig"),
+        file_name="mp_insight_batch_results.csv",
+        mime="text/csv"
+    )
