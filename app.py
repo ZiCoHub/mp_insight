@@ -522,13 +522,12 @@ if hero_img.exists():
         b = hero_img.read_bytes()
         st.caption(f"hero_img path: {hero_img}")
         st.caption(f"hero_img size: {len(b)} bytes")
-        st.caption(f"hero_img head: {b[:8]!r}")  # PNG 应该是 b'\\x89PNG\\r\\n\\x1a\\n'
 
-        # ✅ 用 bytes 方式喂给 st.image，绕过路径读取问题
-        st.image(b, use_container_width=True)
+        st.image(b)   # ✅ 关键：不要 use_container_width
 
     except Exception as e:
         st.error(f"Failed to read/display hero image: {type(e).__name__}: {e}")
+
 else:
     st.markdown(
         "<div style='height:340px;border:1.5px dashed #cbd5e1;border-radius:12px;"
