@@ -15,6 +15,26 @@ from io import StringIO
 
 
 import re
+# ==========================================================
+# Force-load Times New Roman from project (cloud-safe)
+# ==========================================================
+import matplotlib.font_manager as fm
+
+FONT_DIR = ROOT / "assets"
+
+for f in [
+    FONT_DIR / "times.ttf",
+    FONT_DIR / "timesbd.ttf",
+    FONT_DIR / "timesi.ttf",
+    FONT_DIR / "timesbi.ttf",
+]:
+    if f.exists():
+        fm.fontManager.addfont(str(f))
+
+mpl.rcParams.update({
+    "font.family": "Times New Roman",
+    "font.serif": ["Times New Roman"],
+})
 
 def _normalize_colname(c):
     c = str(c).strip().replace("\u00a0", " ")
