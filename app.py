@@ -726,69 +726,6 @@ with tab_batch:
     )
 
     f = st.file_uploader("Upload CSV", type=["csv"], key="csv_uploader_batch")
-
-    if f is None:
-        st.info("Upload a CSV to run batch prediction.")
-    else:
-        try:
-            df_in = pd.read_csv(f)
-        except Exception as e:
-            st.error(f"Cannot read CSV: {e}")
-            st.stop()
-
-        # ✅ 列名标准化（用文件头已有函数）
-        df_in = standardize_input_df(df_in)
-
-        # 列检查
-        check = validate_csv_columns(df_in, required_cols)
-        st.markdown("**Column check**")
-        st.dataframe(check["status_df"], use_container_width=True)
-
-        if check["missing"]:
-            st.error("Missing required columns:\n\n- " + "\n- ".join(check["missing"]))
-            st.stop()
-
-        if check["extras"]:
-            st.warning("Extra columns will be ignored:\n\n- " + "\n- ".join(check["extras"]))
-
-        if pipe is None:
-            st.error("Model not loaded.")
-            st.stop()
-
-        # ✅ 对齐模型输入列（建议保留）
-        try:
-            expected_cols = list(pipe.feature_names_in_)
-            missing_model = set(expected_cols) - set(df_in.columns)
-            if missing_model:
-                st.error(f"Model expects columns missing after normalization: {sorted(missing_model)}")
-                st.stop()
-            df_in = df_in[expected_cols]
-        except Exception as e:
-            st.error(f"Column alignment error: {e}")
-            st.stop()
-
-        # 预测
-        preds = pipe.predict(df_in)
-
-        out = df_in.copy()
-        out["Predicted_logKMP_W"] = preds
-        out["PI95_low"]  = out["Predicted_logKMP_W"] - q95
-        out["PI95_high"] = out["Predicted_logKMP_W"] + q95
-        out["Sorbed_fraction"] = out["Predicted_logKMP_W"].apply(lambda v: R_pred_from_logKd(v, C_MP_gmL))
-        out["Enrichment_index"] = out["Predicted_logKMP_W"].apply(lambda v: phi_from_logKd(v, C_MP_gmL))
-
-        st.markdown("**Preview (first 30 rows)**")
-        st.dataframe(out.head(30), use_container_width=True)
-
-        st.download_button(
-            "Download results CSV",
-            data=out.to_csv(index=False).encode("utf-8-sig"),
-            file_name="mp_insight_batch_results.csv",
-            mime="text/csv",
-        )
-
-
-    f = st.file_uploader("Upload CSV", type=["csv"], key="csv_uploader_batch")
     if f is None:
     st.info("Upload a CSV to run batch prediction.")
     st.stop()
