@@ -517,8 +517,6 @@ with tab_home:
     hero_img = ROOT / "assets" / "mp_insight_overview.png"
     if hero_img.exists():
         st.image(str(hero_img), use_container_width=True)
-    else:
-        st.warning(f"Missing image: {hero_img}")
     
     else:
         st.markdown(
