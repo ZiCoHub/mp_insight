@@ -19,7 +19,7 @@ import re
 # Force-load Times New Roman from project (cloud-safe)
 # ==========================================================
 import matplotlib.font_manager as fm
-
+ROOT = Path(__file__).resolve().parent 
 FONT_DIR = ROOT / "assets"
 
 for f in [
@@ -240,7 +240,7 @@ st.markdown(
 )
 
 # ---------- Paths ----------
-ROOT = Path(__file__).resolve().parent 
+
 
 DATA_DIR    = ROOT / "data"
 MODELS_DIR  = ROOT / "models"
