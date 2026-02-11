@@ -515,27 +515,27 @@ with tab_home:
 
     # Put What/How at bottom (per your preference): show image + intro first, then What/How
     
-hero_img = ROOT / "assets" / "mp_insight_overview.png"
+    # Put What/How at bottom (per your preference): show image + intro first, then What/How
+    hero_img = ROOT / "assets" / "mp_insight_overview.png"
 
-if hero_img.exists():
-    try:
-        b = hero_img.read_bytes()
-        st.caption(f"hero_img path: {hero_img}")
-        st.caption(f"hero_img size: {len(b)} bytes")
-
-        st.image(b)   # ✅ 关键：不要 use_container_width
-
-    except Exception as e:
-        st.error(f"Failed to read/display hero image: {type(e).__name__}: {e}")
-
-else:
-    st.markdown(
-        "<div style='height:340px;border:1.5px dashed #cbd5e1;border-radius:12px;"
-        "display:flex;align-items:center;justify-content:center;color:#667085;"
-        "background:#f8fafc;font-size:14px;margin:14px 0'>"
-        "Add overview image at <code>assets/mp_insight_overview.png</code></div>",
-        unsafe_allow_html=True
-    )
+    if hero_img.exists():
+        try:
+            b = hero_img.read_bytes()
+            # 兼容不同 Streamlit 版本：新版本 use_container_width，旧版本 use_column_width
+            try:
+                st.image(b, use_container_width=True)
+            except TypeError:
+                st.image(b, use_column_width=True)
+        except Exception as e:
+            st.error(f"Failed to read/display hero image: {type(e).__name__}: {e}")
+    else:
+        st.markdown(
+            "<div style='height:340px;border:1.5px dashed #cbd5e1;border-radius:12px;"
+            "display:flex;align-items:center;justify-content:center;color:#667085;"
+            "background:#f8fafc;font-size:14px;margin:14px 0'>"
+            "Add overview image at <code>assets/mp_insight_overview.png</code></div>",
+            unsafe_allow_html=True
+        )
 
     st.markdown("""
     <div class="intro-one">
@@ -716,19 +716,6 @@ with tab_single:
 with tab_batch:
     st.markdown("### Batch CSV prediction")
 
-    if MODE == "Known polymer":
-        st.markdown("""
-**Input format:** upload a CSV containing sample-level descriptors.  
-**Required columns (Known polymer):**
-- MPs types, Ageing_Status, Water Type, Plastic Density, SSA, Particle Size, LogKow, E, S, A, B, V, PH, Salinity, Temperature
-""")
-    else:
-        st.markdown("""
-**Input format:** upload a CSV containing sample-level descriptors.  
-**Required columns (Unknown polymer):**
-- Ageing_Status, Water Type, Plastic Density, SSA, Particle Size, LogKow, E, S, A, B, V, PH, Salinity, Temperature
-""")
-
     required_cols = get_required_cols(MODE)
     tpl_bytes = make_template_csv(required_cols)
     st.download_button(
@@ -740,7 +727,69 @@ with tab_batch:
 
     f = st.file_uploader("Upload CSV", type=["csv"], key="csv_uploader_batch")
     if f is None:
-        st.stop()
+        st.info("Upload a CSV to run batch prediction.")
+    else:
+        try:
+            df_in = pd.read_csv(f)
+        except Exception as e:
+            st.error(f"Cannot read CSV: {e}")
+            st.stop()
+
+        # ✅ 列名标准化（用文件头已有函数）
+        df_in = standardize_input_df(df_in)
+
+        # 列检查
+        check = validate_csv_columns(df_in, required_cols)
+        st.markdown("**Column check**")
+        st.dataframe(check["status_df"], use_container_width=True)
+
+        if check["missing"]:
+            st.error("Missing required columns:\n\n- " + "\n- ".join(check["missing"]))
+            st.stop()
+
+        if check["extras"]:
+            st.warning("Extra columns will be ignored:\n\n- " + "\n- ".join(check["extras"]))
+
+        if pipe is None:
+            st.error("Model not loaded.")
+            st.stop()
+
+        # ✅ 对齐模型输入列（可选，但建议保留）
+        try:
+            expected_cols = list(pipe.feature_names_in_)
+            missing_model = set(expected_cols) - set(df_in.columns)
+            if missing_model:
+                st.error(f"Model expects columns missing after normalization: {sorted(missing_model)}")
+                st.stop()
+            df_in = df_in[expected_cols]
+        except Exception as e:
+            st.error(f"Column alignment error: {e}")
+            st.stop()
+
+        # 预测
+        preds = pipe.predict(df_in)
+
+        out = df_in.copy()
+        out["Predicted_logKMP_W"] = preds
+        out["PI95_low"]  = out["Predicted_logKMP_W"] - q95
+        out["PI95_high"] = out["Predicted_logKMP_W"] + q95
+        out["Sorbed_fraction"] = out["Predicted_logKMP_W"].apply(lambda v: R_pred_from_logKd(v, C_MP_gmL))
+        out["Enrichment_index"] = out["Predicted_logKMP_W"].apply(lambda v: phi_from_logKd(v, C_MP_gmL))
+
+        st.markdown("**Preview (first 30 rows)**")
+        st.dataframe(out.head(30), use_container_width=True)
+
+        st.download_button(
+            "Download results CSV",
+            data=out.to_csv(index=False).encode("utf-8-sig"),
+            file_name="mp_insight_batch_results.csv",
+            mime="text/csv"
+        )
+
+    f = st.file_uploader("Upload CSV", type=["csv"], key="csv_uploader_batch")
+    if f is None:
+    st.info("Upload a CSV to run batch prediction.")
+    st.stop()
 
     try:
         df_in = pd.read_csv(f)
@@ -785,7 +834,7 @@ with tab_batch:
 
     df_in.columns = df_in.columns.str.strip()
     mapped = _map_columns(df_in.columns)
-    df_in = df_in.rename(columns=mapped)
+    df_in = standardize_input_df(df_in)
 
     # ==================================================
     # 列检查（标准化后再检查）
