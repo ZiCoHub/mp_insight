@@ -12,11 +12,11 @@ import streamlit as st
 MAINTENANCE_MODE = True
 
 if MAINTENANCE_MODE:
-    st.set_page_config(page_title="MP-Insight", page_icon="🛠️")
-    st.title("MP-Insight is temporarily unavailable")
+    st.set_page_config(page_title="MP-Insight", page_icon="🔬")
+    st.title("MP-Insight is under maintenance")
     st.info(
-        "This web application is currently under maintenance due to model and dependency updates. "
-        "Please check back later."
+        "The public prediction interface is temporarily limited due to model-version management "
+        "and dependency maintenance. Please check back later."
     )
     st.stop()
 
